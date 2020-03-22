@@ -65,13 +65,13 @@ class UserController {
                 (content) =>{
                     values.photo = content;
 
-                    values.save();
+                    values.save().then(user => {
+                        this.addLine(user);
+                        this.formEl.reset();
+                        btn.disabled = false;
+                    });
 
-                    this.addLine(values);
-
-                    this.formEl.reset();
-
-                    btn.disabled = false;
+                    
                 },
                 (e) =>{
                     console.error(e);
@@ -127,26 +127,27 @@ class UserController {
 
                 user.loadFromJSON(JSON.parse(tr.dataset.user));
 
-                user.remove();
+                user.remove().then(data => {
+                    tr.remove();
+                    this.updateCount();
+                });
 
-                tr.remove();
-                this.updateCount();
             }
         });
     }
 
     selectAll(){
 
-        let users = User.getUsersStorage();
+        User.selectUsers().then(data=>{
+            data.users.forEach(dataUser =>{
 
-        users.forEach(dataUser =>{
-
-            let user = new User();
-
-            user.loadFromJSON(dataUser);
-
-            this.addLine(user);
-        });
+                let user = new User();
+    
+                user.loadFromJSON(dataUser);
+    
+                this.addLine(user);
+            });
+        })
 
     }
 
@@ -228,15 +229,16 @@ class UserController {
                     
                     user.loadFromJSON(result);
 
-                    user.save();
+                    user.save().then(user => {
+                        this.getTr(user, tr);
+
+                        this.updateCount();
+                        this.formUpdateEl.reset();
+    
+                        btn.disabled = false;
+                        this.showPanelCreate();
+                    })
                     
-                    this.getTr(user, tr);
-
-                    this.updateCount();
-                    this.formUpdateEl.reset();
-
-                    btn.disabled = false;
-                    this.showPanelCreate();
                 },
                 (e) =>{
                     console.error(e);

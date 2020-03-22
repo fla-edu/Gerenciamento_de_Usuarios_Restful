@@ -91,18 +91,6 @@ class User {
         this._register = register;
     }
 
-    getNewID(){
-
-        let usersID = parseInt(localStorage.getItem("usersID"));
-        if (!usersID > 0) usersID = 0;
-
-        usersID++;
-
-        localStorage.setItem("usersID", usersID);
-
-        return usersID;
-    }
-
     loadFromJSON(json){
 
         for(let name in json){
@@ -112,54 +100,52 @@ class User {
                     this[name] = new Date(json[name]);
                     break;
                 default:
-                    this[name] = json[name];
+                    if(name.substring(0,1) === '_') this[name] = json[name];
             }
             
         }
     }
 
+    toJSON(){
+
+        let json = {};
+
+        Object.keys(this).forEach(key => {
+            if(this[key] !== undefined) json[key] = this[key];
+        });
+
+        return json;
+    }
+
     save(){
+    
+        return new Promise((resolve, reject) => {
 
-        let users = User.getUsersStorage();
+            let promise;
 
-        if(this.id > 0){
-            users.map(u=>{
+            if(this.id){
+                promise = Fetch.put(`/users/${this.id}`, this.toJSON());
+            }else{
+                console.log(this.toJSON());
+                promise = Fetch.post(`/users`, this.toJSON());
+            }
 
-                if(u._id == this.id){
-                    Object.assign(u, this);
-                }
-                return u;
-            });
-        }else {
-            this._id = this.getNewID();
-            users.push(this);
-        }
+            promise.then(data => {
+                this.loadFromJSON(data);
+                resolve(this);
+            }).catch(e => {
+                reject(e);
+            })
 
-        localStorage.setItem('users', JSON.stringify(users));
-        
-
+        });
     }
 
     remove(){
-
-        let users = User.getUsersStorage();
-
-        users.forEach((userData, index) => {
-            if(this._id == userData._id){
-                users.splice(index, 1);
-            }
-        });
-
-        localStorage.setItem("users", JSON.stringify(users));
+        return Fetch.delete(`/users/${this.id}`);
     }
 
-    static getUsersStorage(){
-        let users = [];
-        if(localStorage.getItem('users')){
-            users = JSON.parse(localStorage.getItem('users'));
-        }
-
-        return users;
+    static selectUsers(){
+        return Fetch.get('/users');
     }
 
 }
